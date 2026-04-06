@@ -1,0 +1,8 @@
+{
+  "name": "bet-in-gamer-netlify-functions",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "latest"
+  }
+}
