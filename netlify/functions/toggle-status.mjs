@@ -1,9 +1,11 @@
+let enabled = true;
+
 export async function handler(event) {
   try {
     const body = JSON.parse(event.body || "{}");
 
-    const login = body.login;
-    const pass = body.pass;
+    const login = String(body.login || "").trim();
+    const pass = String(body.pass || "").trim();
 
     const ADMIN_USER = "admin";
     const ADMIN_PASS = "marcos7754";
@@ -18,14 +20,18 @@ export async function handler(event) {
       };
     }
 
+    if (typeof body.enabled === "boolean") {
+      enabled = body.enabled;
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
         ok: true,
-        message: "Acesso liberado"
+        enabled,
+        message: enabled ? "Formulário ativado" : "Formulário desativado"
       })
     };
-
   } catch (err) {
     return {
       statusCode: 500,
