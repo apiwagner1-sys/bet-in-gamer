@@ -28,7 +28,10 @@ function parseBody(req) {
   }
 
   if (contentType.includes("application/x-www-form-urlencoded")) {
-    return req.text().then((text) => Object.fromEntries(new URLSearchParams(text))).catch(() => ({}));
+    return req
+      .text()
+      .then((text) => Object.fromEntries(new URLSearchParams(text)))
+      .catch(() => ({}));
   }
 
   return req.json().catch(() => ({}));
@@ -42,55 +45,57 @@ function validateField(value) {
 
 export default async function handler(req) {
   try {
-  if (req.method !== "POST") return methodNotAllowed();
+    if (req.method !== "POST") return methodNotAllowed();
 
-  const configStore = openStore("bet-in-gamer-config");
-  const current = await configStore.get("form_enabled");
-  const enabled = current === null ? true : current === "1";
+    const configStore = openStore("bet-in-gamer-config");
+    const current = await configStore.get("form_enabled");
+    const enabled = current === null ? true : current === "1";
 
-  if (!enabled) {
+    if (!enabled) {
+      return new Response(JSON.stringify({
+        ok: false,
+        message: "O formulário está desativado no momento."
+      }), {
+        status: 403,
+        headers: jsonHeaders
+      });
+    }
+
+    const body = await parseBody(req);
+    const payload = {
+      platformId: body.platformId || "",
+      whatsapp: body.whatsapp || "",
+      pix: body.pix || "",
+      foundBy: body.foundBy || "",
+      data: body.data || new Date().toLocaleString("pt-BR")
+    };
+
+    if (![payload.platformId, payload.whatsapp, payload.pix].every(validateField)) {
+      return new Response(JSON.stringify({
+        ok: false,
+        message: "Preencha todos os campos obrigatórios."
+      }), {
+        status: 400,
+        headers: jsonHeaders
+      });
+    }
+
+    const submissionsStore = openStore("bet-in-gamer-submissions");
+    const key = `${Date.now()}-${crypto.randomUUID()}`;
+    await submissionsStore.setJSON(key, payload);
+
     return new Response(JSON.stringify({
-      ok: false,
-      message: "O formulário está desativado no momento."
+      ok: true,
+      message: "Cadastro salvo com sucesso!"
     }), {
-      status: 403,
+      status: 200,
       headers: jsonHeaders
     });
-  }
-
-  const body = await parseBody(req);
-  const payload = {
-    email: body.email || "",
-    platformId: body.platformId || "",
-    whatsapp: body.whatsapp || "",
-    pix: body.pix || "",
-    foundBy: body.foundBy || "",
-    data: body.data || new Date().toLocaleString("pt-BR")
-  };
-
-  if (![payload.email, payload.platformId, payload.whatsapp, payload.pix].every(validateField)) {
-    return new Response(JSON.stringify({
-      ok: false,
-      message: "Preencha todos os campos obrigatórios."
-    }), {
-      status: 400,
-      headers: jsonHeaders
-    });
-  }
-
-  const submissionsStore = openStore("bet-in-gamer-submissions");
-  const key = `${Date.now()}-${crypto.randomUUID()}`;
-  await submissionsStore.setJSON(key, payload);
-
-  return new Response(JSON.stringify({
-    ok: true,
-    message: "Cadastro salvo com sucesso!"
-  }), {
-    status: 200,
-    headers: jsonHeaders
-  });
   } catch (error) {
-    return new Response(JSON.stringify({ ok: false, message: error?.message || "Erro interno." }), {
+    return new Response(JSON.stringify({
+      ok: false,
+      message: error?.message || "Erro interno."
+    }), {
       status: 500,
       headers: jsonHeaders
     });
