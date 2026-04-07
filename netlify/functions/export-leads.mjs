@@ -56,9 +56,7 @@ export default async function handler(req) {
   const { blobs } = await submissionsStore.list();
   const sorted = [...blobs].sort((a, b) => b.key.localeCompare(a.key));
 
-  const rows = [
-    ["email", "platformId", "whatsapp", "pix", "foundBy", "data"]
-  ];
+  const rows = [];
 
   for (const item of sorted) {
     const raw = await submissionsStore.get(item.key);
@@ -69,23 +67,41 @@ export default async function handler(req) {
     } catch {
       continue;
     }
-    rows.push([
-      data.email || "",
-      data.platformId || "",
-      data.whatsapp || "",
-      data.pix || "",
-      data.foundBy || "",
-      data.data || ""
-    ]);
+    rows.push({
+      email: data.email || "",
+      platformId: data.platformId || "",
+      whatsapp: data.whatsapp || "",
+      pix: data.pix || "",
+      foundBy: data.foundBy || "",
+      data: data.data || ""
+    });
   }
 
-  const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+  const worksheet = XLSX.utils.json_to_sheet(rows, {
+    header: ["email", "platformId", "whatsapp", "pix", "foundBy", "data"]
+  });
+  worksheet["!cols"] = [
+    { wch: 28 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 22 },
+    { wch: 16 },
+    { wch: 22 }
+  ];
 
-  return new Response(csv, {
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+  const buffer = XLSX.write(workbook, {
+    type: "buffer",
+    bookType: "xlsx"
+  });
+
+  return new Response(buffer, {
     status: 200,
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="formularios_bet_in_gamer.csv"',
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="formularios_bet_in_gamer.xlsx"',
       "Cache-Control": "no-store"
     }
   });
