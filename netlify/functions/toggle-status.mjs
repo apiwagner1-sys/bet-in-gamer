@@ -4,8 +4,8 @@ export async function handler(event) {
   try {
     const body = JSON.parse(event.body || "{}");
 
-    const login = String(body.login || "").trim();
-    const pass = String(body.pass || "").trim();
+    const login = body.login;
+    const pass = body.pass;
 
     const ADMIN_USER = "admin";
     const ADMIN_PASS = "marcos7754";
@@ -29,9 +29,10 @@ export async function handler(event) {
       body: JSON.stringify({
         ok: true,
         enabled,
-        message: enabled ? "Formulário ativado" : "Formulário desativado"
+        message: enabled ? "Ativado" : "Desativado"
       })
     };
+
   } catch (err) {
     return {
       statusCode: 500,
