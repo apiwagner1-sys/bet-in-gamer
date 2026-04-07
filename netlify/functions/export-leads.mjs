@@ -1,3 +1,4 @@
+import * as XLSX from "xlsx";
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store"
